@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="
+        http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/tx
+        http://www.springframework.org/schema/tx/spring-tx.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd
+   http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd">
+    <!--注册druid数据源-->
+    <bean id="myDataSource" class="com.alibaba.druid.pool.DruidDataSource">
+        <property name="driverClassName" value="${jdbc.driver}"/>
+        <property name="url" value="${jdbc.url}"/>
+        <property name="username" value="${jdbc.user}"/>
+        <property name="password" value="${jdbc.password}"/>
+    </bean>
+    <!-- 注册属性文件-->
+    <bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="location" value="classpath:jdbc.properties"/>
+    </bean>
+    <!--    注册sqlSessionFactoryBean-->
+    <bean id="mySqlsersionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <!--指定mybatis主配置文件-->
+        <property name="configLocation" value="classpath:mybatis.xml"/>
+        <!-- 配置Mapper映射-->
+        <property name="mapperLocations" value="classpath:mapper/*.xml"/>
+        <!--指定数据源-->
+        <property name="dataSource" ref="myDataSource"/>
+    </bean>
+    <!--    生成dao代理对象-->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="sqlSessionFactoryBeanName" value="mySqlsersionFactory"/>
+        <property name="basePackage" value="com.pms.mapper"/>
+    </bean>
+    <!--    注册service-->
+    <context:component-scan base-package="com.pms.service"/>
+    <!--注删事务管理器-->
+    <bean id="myTransactioinManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="myDataSource"/>
+    </bean>
+    <!-- 事物配置 -->
+<!--    <tx:annotation-driven transaction-manager="myTransactioinManager" />-->
+    <!-- 配置事务-->
+    <tx:advice id="myAdvice" transaction-manager="myTransactioinManager">
+        <tx:attributes>
+            <tx:method name="add*" propagation="REQUIRED" isolation="DEFAULT"/>
+            <tx:method name="remove*" propagation="REQUIRED" isolation="DEFAULT"/>
+            <tx:method name="modify*" propagation="REQUIRED" isolation="DEFAULT"/>
+            <tx:method name="find*" propagation="REQUIRED" isolation="DEFAULT" read-only="true"/>
+        </tx:attributes>
+    </tx:advice>
+    <!-- 配置顾问-->
+    <aop:config>
+        <aop:pointcut id="myPoincut" expression="execution(* *..StudentServiceImpl.*(..))"/>
+        <aop:advisor advice-ref="myAdvice" pointcut-ref="myPoincut"/>
+    </aop:config>
+
+</beans>
